@@ -1,11 +1,14 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [string[]]$SubscriptionIds,
     [ValidateNotNullOrEmpty()]
     [string]$OutputPath = '.\storage-account-overview.csv',
     [datetime]$EndTime = (Get-Date).ToUniversalTime(),
     [datetime]$StartTime = $EndTime.AddDays(-2)
+)
+
+# Specify the subscriptions to include
+$subscriptionIds = @(
+    "00000000-0000-0000-0000-000000000001"
+    "00000000-0000-0000-0000-000000000002"
 )
 
 $startTime = $StartTime.ToUniversalTime()
