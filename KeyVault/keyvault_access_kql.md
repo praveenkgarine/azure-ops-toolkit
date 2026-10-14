@@ -1,37 +1,43 @@
 # Azure Key Vault Access Query
 
-Use this Kusto Query Language (KQL) query to review recent Azure Key Vault access, including the operation, caller IP address, requested resource, and result.
+Use this Kusto Query Language (KQL) query to see when a specific Azure Key Vault secret was read or a read was attempted, including the timestamp, caller IP address, and result.
 
 ## Before you start
 
 - Enable Key Vault **AuditEvent** diagnostic logs and send them to a Log Analytics workspace.
 - Run the query in that workspace. This example uses the `AzureDiagnostics` table.
-- Replace `your-key-vault-name` with your vault name and adjust `ago(7d)` for the time range you need.
+- Replace `your-key-vault-name` and `your-secret-name` with your vault and secret names. Adjust `ago(7d)` for the time range you need.
 
-## Review recent access
+## Review access to a specific secret
 
 ```kusto
 let VaultName = "your-key-vault-name";
+let SecretName = "your-secret-name";
 AzureDiagnostics
 | where TimeGenerated >= ago(7d)
 | where ResourceProvider == "MICROSOFT.KEYVAULT"
 | where Category == "AuditEvent"
 | where Resource =~ VaultName
+| where OperationName == "SecretGet"
+| extend RequestUri = tostring(column_ifexists("requestUri_s", ""))
+| extend AccessedSecret = extract(@"/secrets/([^/?]+)", 1, RequestUri)
+| where AccessedSecret =~ SecretName
 | project
     TimeGenerated,
     VaultName = Resource,
+    SecretName = AccessedSecret,
     OperationName,
     CallerIPAddress,
-    RequestUri = tostring(column_ifexists("requestUri_s", "")),
+    RequestUri,
     ResultType,
     ResultSignature,
     ResultDescription
 | order by TimeGenerated desc
 ```
 
-Each row represents a logged request. Check the operation and request URI to see what was accessed, and review the result fields to investigate failures or denied requests. A caller IP address alone does not identify a user or application.
+Each row represents a logged read request for the selected secret. `TimeGenerated` shows the request timestamp in UTC. The filter matches the secret name with or without a version in the request URI.
 
-To focus on secret reads, add `| where OperationName == "SecretGet"` before the `project` step. Logs are available only for the period covered by your diagnostic settings and workspace retention.
+Review the result fields to distinguish successful reads from failures or denied requests. A caller IP address alone does not identify a user or application. Logs are available only for the period covered by your diagnostic settings and workspace retention.
 
 ## References
 
