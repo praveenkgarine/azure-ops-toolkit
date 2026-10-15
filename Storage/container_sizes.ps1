@@ -103,9 +103,10 @@ foreach ($subscriptionId in $subscriptionIds) {
 
         Write-Host "Scanning $($context.Subscription.Name) / $($account.StorageAccountName)"
         try {
+            # Uses the active context selected by Set-AzContext above.
+            # New-AzStorageContext does not support -DefaultProfile.
             $storageContext = New-AzStorageContext -StorageAccountName $account.StorageAccountName `
-                -Endpoint $context.Environment.StorageEndpointSuffix -UseConnectedAccount `
-                -DefaultProfile $context -ErrorAction Stop
+                -Endpoint $context.Environment.StorageEndpointSuffix -UseConnectedAccount -ErrorAction Stop
         }
         catch {
             Write-SizeResult @row -Status 'AccountError' -ErrorMessage $_.Exception.Message
